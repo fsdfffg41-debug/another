@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LeadFinder — Find Businesses That Need a Website</title>
-<meta name="description" content="Search businesses by country and category, see who already has a website and who doesn't, and export your leads.">
+<meta name="description" content="Search businesses by country and category, see who already has a website and who doesn't, track outreach, and export your leads.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231d4ed8'/%3E%3Cpath d='M30 70V35h10l15 22 15-22h10v35h-10V50L57 68h-4L40 50v20z' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,23 +36,26 @@
   <!-- ---------- top bar ---------- -->
   <header class="topbar">
     <div class="brand">
+      <button class="btn icon mobile-only" id="drawerToggle" aria-label="Open filters">☰</button>
       <span class="logo-mark"></span>
       <span class="brand-name">LeadFinder</span>
     </div>
     <div class="topbar-actions">
-      <button class="btn ghost" id="templateBtn">Download CSV template</button>
+      <button class="btn ghost" id="templateBtn">CSV template</button>
       <button class="btn ghost" id="importBtn">Import CSV</button>
       <input type="file" id="importFile" accept=".csv" hidden>
-      <button class="btn primary" id="exportBtn">Export results (CSV)</button>
+      <button class="btn ghost" id="exportOppBtn">Export opportunities</button>
+      <button class="btn primary" id="exportBtn">Export results</button>
+      <button class="btn icon" id="themeToggle" title="Toggle dark mode">🌙</button>
       <button class="btn icon" id="lockBtn" title="Lock workspace">🔒</button>
     </div>
   </header>
 
-  <!-- ---------- demo data banner ---------- -->
+  <!-- ---------- data source banner ---------- -->
   <div class="banner" id="demoBanner">
     <span>
       <strong>You're viewing sample data.</strong>
-      Import a CSV of real businesses to use this tool with your own leads —
+      Import a CSV, or connect Live Google Search in the sidebar, to use real businesses —
       <button class="link-btn" id="bannerHowTo">how to get real data</button>
     </span>
     <button class="banner-close" id="bannerClose" aria-label="Dismiss">×</button>
@@ -60,8 +63,15 @@
 
   <div class="layout">
 
+    <div class="drawer-scrim" id="drawerScrim"></div>
+
     <!-- ---------- filters sidebar ---------- -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-mobile-head mobile-only">
+        <span>Filters</span>
+        <button class="btn icon" id="drawerClose" aria-label="Close filters">×</button>
+      </div>
+
       <div class="filter-group">
         <label for="countrySelect">Country / Region</label>
         <select id="countrySelect"></select>
@@ -104,16 +114,44 @@
         </select>
       </div>
 
+      <div class="filter-group">
+        <label class="checkbox-row"><input type="checkbox" id="savedOnlyCheck"> Show saved leads only</label>
+      </div>
+
       <button class="btn ghost full" id="resetBtn">Reset filters</button>
 
       <div class="sidebar-stats" id="sidebarStats"></div>
+
+      <!-- ---------- live google search ---------- -->
+      <div class="live-panel">
+        <div class="live-panel-head">
+          <span>Live Google Search</span>
+          <span class="live-dot" id="liveDot"></span>
+        </div>
+        <p class="live-panel-sub">
+          Pull real businesses from Google Places, using your own API key and billing account.
+        </p>
+
+        <div id="liveKeyRow">
+          <input type="password" id="googleApiKey" placeholder="Paste your Google Maps API key" autocomplete="off">
+          <button class="btn primary full" id="connectGoogleBtn">Connect</button>
+        </div>
+
+        <div id="liveSearchRow" class="hidden">
+          <button class="btn primary full" id="liveSearchBtn">Search Google now</button>
+          <button class="btn ghost full" id="disconnectGoogleBtn">Disconnect</button>
+        </div>
+
+        <div class="live-status" id="liveStatus">Not connected — using sample data.</div>
+        <button class="link-btn small" id="liveHowToBtn">How do I get an API key?</button>
+      </div>
     </aside>
 
     <!-- ---------- results ---------- -->
     <main class="results">
       <div class="results-bar">
         <div class="results-count" id="resultsCount">Loading…</div>
-        <div class="page-size-note">100 results per page</div>
+        <div class="page-size-note" id="pageSizeNote">100 per batch</div>
       </div>
 
       <div class="grid" id="resultsGrid"></div>
@@ -124,30 +162,51 @@
         <button class="btn primary" id="emptyResetBtn">Reset filters</button>
       </div>
 
-      <nav class="pagination" id="pagination" aria-label="Pagination"></nav>
+      <div class="load-more-wrap">
+        <button class="btn primary" id="loadMoreBtn">Load more</button>
+        <div class="load-more-note" id="loadMoreNote"></div>
+      </div>
     </main>
 
   </div>
 
   <footer class="app-footer">
-    <span>LeadFinder — sample build. Connect your own data source via Import CSV for real results.</span>
+    <span>LeadFinder — sample build. Connect Live Google Search or Import CSV for real results.</span>
   </footer>
 </div>
 
-<!-- ===================== HOW-TO MODAL ===================== -->
+<!-- ===================== HOW-TO MODAL (general) ===================== -->
 <div class="modal-scrim hidden" id="howtoScrim">
   <div class="modal">
     <button class="modal-close" id="howtoClose" aria-label="Close">×</button>
     <h2>How to load real businesses</h2>
-    <p>This app ships with generated sample data so every feature works immediately. To search real businesses:</p>
+    <p>This app ships with generated sample data so every feature works immediately. To search real businesses, you have two real options:</p>
     <ol>
-      <li>Use the <strong>Google Places API</strong> (Text Search or Nearby Search, then Place Details) for the countries/cities and categories you care about. The Place Details response includes a <code>website</code> field — if it's missing, that's a business without a website.</li>
-      <li>Export those results into a spreadsheet matching the column layout in the CSV template (use the <strong>Download CSV template</strong> button in the toolbar).</li>
-      <li>Use <strong>Import CSV</strong> to load that file in. Every filter, search, and pagination feature will then run on your real data.</li>
+      <li><strong>Live Google Search (built in):</strong> connect your own Google Maps API key in the sidebar, with the Places API enabled and billing set up in Google Cloud Console. Then pick a country/city and business type and click "Search Google now."</li>
+      <li><strong>CSV import:</strong> export business data from a legitimate source (the Places API directly, or a licensed data provider) into a spreadsheet matching the template, then use "Import CSV."</li>
     </ol>
-    <p class="modal-note">This keeps the data source fully compliant with Google's terms — direct scraping of Google Maps is against their policies and isn't something this app does.</p>
+    <p class="modal-note">Direct scraping of Google Maps is against Google's terms of service and isn't something this app does. The Places API is the legitimate way to get this same data — it even tells you directly whether a business has a website on file.</p>
   </div>
 </div>
+
+<!-- ===================== HOW-TO MODAL (API key) ===================== -->
+<div class="modal-scrim hidden" id="apiKeyHowtoScrim">
+  <div class="modal">
+    <button class="modal-close" id="apiKeyHowtoClose" aria-label="Close">×</button>
+    <h2>Getting a Google Maps API key</h2>
+    <ol>
+      <li>Go to the Google Cloud Console and create a project (or use an existing one).</li>
+      <li>Enable billing on the project — Google requires this for the Places API, though it includes a recurring free usage credit.</li>
+      <li>Under "APIs & Services," enable the <strong>Maps JavaScript API</strong> and the <strong>Places API</strong>.</li>
+      <li>Create an API key under "Credentials," and (recommended) restrict it to those two APIs and to your own domain.</li>
+      <li>Paste that key into the box in the sidebar and click Connect.</li>
+    </ol>
+    <p class="modal-note">You're billed directly by Google for what you use — this app doesn't add any markup or proxy your requests.</p>
+  </div>
+</div>
+
+<!-- hidden container required by the Google Places library -->
+<div id="placesAttrContainer" style="display:none;"></div>
 
 <script src="data.js"></script>
 <script src="script.js"></script>

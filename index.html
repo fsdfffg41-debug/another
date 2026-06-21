@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LeadFinder — Find Businesses That Need a Website</title>
+<meta name="description" content="Search businesses by country and category, see who already has a website and who doesn't, and export your leads.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231d4ed8'/%3E%3Cpath d='M30 70V35h10l15 22 15-22h10v35h-10V50L57 68h-4L40 50v20z' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===================== LOGIN GATE ===================== -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">
+      <span class="logo-mark"></span>
+      LeadFinder
+    </div>
+    <h1>Enter password to continue</h1>
+    <p class="gate-sub">This workspace is private. Enter the access code to open it.</p>
+    <form id="gateForm">
+      <input type="password" id="gatePassword" placeholder="Access code" autocomplete="off" required>
+      <button type="submit" class="btn primary full">Unlock</button>
+    </form>
+    <div class="gate-error" id="gateError" role="alert"></div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div class="app hidden" id="app">
+
+  <!-- ---------- top bar ---------- -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo-mark"></span>
+      <span class="brand-name">LeadFinder</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn ghost" id="templateBtn">Download CSV template</button>
+      <button class="btn ghost" id="importBtn">Import CSV</button>
+      <input type="file" id="importFile" accept=".csv" hidden>
+      <button class="btn primary" id="exportBtn">Export results (CSV)</button>
+      <button class="btn icon" id="lockBtn" title="Lock workspace">🔒</button>
+    </div>
+  </header>
+
+  <!-- ---------- demo data banner ---------- -->
+  <div class="banner" id="demoBanner">
+    <span>
+      <strong>You're viewing sample data.</strong>
+      Import a CSV of real businesses to use this tool with your own leads —
+      <button class="link-btn" id="bannerHowTo">how to get real data</button>
+    </span>
+    <button class="banner-close" id="bannerClose" aria-label="Dismiss">×</button>
+  </div>
+
+  <div class="layout">
+
+    <!-- ---------- filters sidebar ---------- -->
+    <aside class="sidebar">
+      <div class="filter-group">
+        <label for="countrySelect">Country / Region</label>
+        <select id="countrySelect"></select>
+      </div>
+
+      <div class="filter-group">
+        <label for="citySelect">City</label>
+        <select id="citySelect">
+          <option value="">All cities</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="categorySelect">Business type</label>
+        <select id="categorySelect">
+          <option value="">All types</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Website status</label>
+        <div class="radio-row">
+          <label class="radio-pill"><input type="radio" name="websiteStatus" value="all" checked> All</label>
+          <label class="radio-pill no"><input type="radio" name="websiteStatus" value="no"> No website</label>
+          <label class="radio-pill yes"><input type="radio" name="websiteStatus" value="yes"> Has website</label>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label for="searchInput">Search by name</label>
+        <input type="text" id="searchInput" placeholder="e.g. Grand Hotel">
+      </div>
+
+      <div class="filter-group">
+        <label for="sortSelect">Sort by</label>
+        <select id="sortSelect">
+          <option value="name">Name (A–Z)</option>
+          <option value="rating">Rating (high to low)</option>
+          <option value="reviews">Review count (high to low)</option>
+        </select>
+      </div>
+
+      <button class="btn ghost full" id="resetBtn">Reset filters</button>
+
+      <div class="sidebar-stats" id="sidebarStats"></div>
+    </aside>
+
+    <!-- ---------- results ---------- -->
+    <main class="results">
+      <div class="results-bar">
+        <div class="results-count" id="resultsCount">Loading…</div>
+        <div class="page-size-note">100 results per page</div>
+      </div>
+
+      <div class="grid" id="resultsGrid"></div>
+
+      <div class="empty-state hidden" id="emptyState">
+        <div class="empty-title">No businesses match these filters</div>
+        <p>Try a different country, category, or website status — or reset your filters.</p>
+        <button class="btn primary" id="emptyResetBtn">Reset filters</button>
+      </div>
+
+      <nav class="pagination" id="pagination" aria-label="Pagination"></nav>
+    </main>
+
+  </div>
+
+  <footer class="app-footer">
+    <span>LeadFinder — sample build. Connect your own data source via Import CSV for real results.</span>
+  </footer>
+</div>
+
+<!-- ===================== HOW-TO MODAL ===================== -->
+<div class="modal-scrim hidden" id="howtoScrim">
+  <div class="modal">
+    <button class="modal-close" id="howtoClose" aria-label="Close">×</button>
+    <h2>How to load real businesses</h2>
+    <p>This app ships with generated sample data so every feature works immediately. To search real businesses:</p>
+    <ol>
+      <li>Use the <strong>Google Places API</strong> (Text Search or Nearby Search, then Place Details) for the countries/cities and categories you care about. The Place Details response includes a <code>website</code> field — if it's missing, that's a business without a website.</li>
+      <li>Export those results into a spreadsheet matching the column layout in the CSV template (use the <strong>Download CSV template</strong> button in the toolbar).</li>
+      <li>Use <strong>Import CSV</strong> to load that file in. Every filter, search, and pagination feature will then run on your real data.</li>
+    </ol>
+    <p class="modal-note">This keeps the data source fully compliant with Google's terms — direct scraping of Google Maps is against their policies and isn't something this app does.</p>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
